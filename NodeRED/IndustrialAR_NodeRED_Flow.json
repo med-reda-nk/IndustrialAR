@@ -1,0 +1,244 @@
+[
+  {
+    "id": "industrialar_tab",
+    "type": "tab",
+    "label": "IndustrialAR Bridge",
+    "disabled": false,
+    "info": "HTTP bridge for Unity IndustrialAR. Unity reads GET /telemetry, writes POST /commands, and publishes POST /state. Set env var INDUSTRIAL_AR_PASSWORD or edit the expectedPassword fallback in the Auth Gate function."
+  },
+  {
+    "id": "industrialar_auth",
+    "type": "function",
+    "z": "industrialar_tab",
+    "name": "Auth Gate",
+    "func": "const expectedPassword = env.get('INDUSTRIAL_AR_PASSWORD') || flow.get('industrialar_password') || 'change-me';\nconst headers = msg.req && msg.req.headers ? msg.req.headers : {};\nconst headerPassword = headers['x-node-red-password'];\nconst auth = headers.authorization || '';\nconst bearer = auth.toLowerCase().startsWith('bearer ') ? auth.substring(7) : '';\nif (expectedPassword && headerPassword !== expectedPassword && bearer !== expectedPassword) {\n    msg.statusCode = 401;\n    msg.payload = { ok: false, error: 'unauthorized' };\n    return [null, msg];\n}\nreturn [msg, null];",
+    "outputs": 2,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 350,
+    "y": 120,
+    "wires": [
+      [
+        "industrialar_telemetry"
+      ],
+      [
+        "industrialar_response"
+      ]
+    ]
+  },
+  {
+    "id": "industrialar_telemetry_in",
+    "type": "http in",
+    "z": "industrialar_tab",
+    "name": "IN Unity GET telemetry",
+    "url": "/telemetry",
+    "method": "get",
+    "upload": false,
+    "swaggerDoc": "",
+    "x": 130,
+    "y": 80,
+    "wires": [
+      [
+        "industrialar_auth"
+      ]
+    ]
+  },
+  {
+    "id": "industrialar_telemetry",
+    "type": "function",
+    "z": "industrialar_tab",
+    "name": "Build Telemetry",
+    "func": "let state = flow.get('industrialar_state') || {};\nlet telemetry = Object.assign({\n    voltage: 400,\n    current: 0,\n    power: 0,\n    frequency: 0,\n    targetFrequency: 50,\n    vfdPowered: false,\n    motorRPM: 0,\n    torque: 0,\n    motorTemp: 24,\n    vibration: 0,\n    efficiency: 0,\n    plcRunning: false,\n    cpuMode: 'STOP',\n    faultCode: 0,\n    faultDescription: 'No fault',\n    plcConnected: true,\n    activeScreen: 'MAIN',\n    alarmCount: 0,\n    warningCount: 0,\n    lightGreen: false,\n    lightOrange: false,\n    lightRed: false,\n    lightBlinking: false,\n    towerState: 'IDLE',\n    estop_active: false,\n    timestamp: new Date().toISOString()\n}, state);\nmsg.payload = telemetry;\nreturn msg;",
+    "outputs": 1,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 570,
+    "y": 80,
+    "wires": [
+      [
+        "industrialar_response"
+      ]
+    ]
+  },
+  {
+    "id": "industrialar_commands_in",
+    "type": "http in",
+    "z": "industrialar_tab",
+    "name": "OUT Unity POST commands",
+    "url": "/commands",
+    "method": "post",
+    "upload": false,
+    "swaggerDoc": "",
+    "x": 140,
+    "y": 180,
+    "wires": [
+      [
+        "industrialar_json_commands"
+      ]
+    ]
+  },
+  {
+    "id": "industrialar_json_commands",
+    "type": "json",
+    "z": "industrialar_tab",
+    "name": "Parse JSON",
+    "property": "payload",
+    "action": "",
+    "pretty": false,
+    "x": 330,
+    "y": 180,
+    "wires": [
+      [
+        "industrialar_auth_commands"
+      ]
+    ]
+  },
+  {
+    "id": "industrialar_auth_commands",
+    "type": "function",
+    "z": "industrialar_tab",
+    "name": "Auth Gate",
+    "func": "const expectedPassword = env.get('INDUSTRIAL_AR_PASSWORD') || flow.get('industrialar_password') || 'change-me';\nconst headers = msg.req && msg.req.headers ? msg.req.headers : {};\nconst headerPassword = headers['x-node-red-password'];\nconst auth = headers.authorization || '';\nconst bearer = auth.toLowerCase().startsWith('bearer ') ? auth.substring(7) : '';\nif (expectedPassword && headerPassword !== expectedPassword && bearer !== expectedPassword) {\n    msg.statusCode = 401;\n    msg.payload = { ok: false, error: 'unauthorized' };\n    return [null, msg];\n}\nreturn [msg, null];",
+    "outputs": 2,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 500,
+    "y": 180,
+    "wires": [
+      [
+        "industrialar_command_store",
+        "industrialar_command_debug"
+      ],
+      [
+        "industrialar_response"
+      ]
+    ]
+  },
+  {
+    "id": "industrialar_command_store",
+    "type": "function",
+    "z": "industrialar_tab",
+    "name": "Store Command",
+    "func": "const command = msg.payload || {};\nlet commands = flow.get('industrialar_commands') || [];\ncommands.unshift(command);\ncommands = commands.slice(0, 25);\nflow.set('industrialar_commands', commands);\nflow.set('industrialar_last_command', command);\nmsg.payload = { ok: true, received: command.command, device: command.device, timestamp: new Date().toISOString() };\nreturn msg;",
+    "outputs": 1,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 700,
+    "y": 180,
+    "wires": [
+      [
+        "industrialar_response"
+      ]
+    ]
+  },
+  {
+    "id": "industrialar_state_in",
+    "type": "http in",
+    "z": "industrialar_tab",
+    "name": "OUT Unity POST state",
+    "url": "/state",
+    "method": "post",
+    "upload": false,
+    "swaggerDoc": "",
+    "x": 130,
+    "y": 280,
+    "wires": [
+      [
+        "industrialar_json_state"
+      ]
+    ]
+  },
+  {
+    "id": "industrialar_json_state",
+    "type": "json",
+    "z": "industrialar_tab",
+    "name": "Parse JSON",
+    "property": "payload",
+    "action": "",
+    "pretty": false,
+    "x": 330,
+    "y": 280,
+    "wires": [
+      [
+        "industrialar_auth_state"
+      ]
+    ]
+  },
+  {
+    "id": "industrialar_auth_state",
+    "type": "function",
+    "z": "industrialar_tab",
+    "name": "Auth Gate",
+    "func": "const expectedPassword = env.get('INDUSTRIAL_AR_PASSWORD') || flow.get('industrialar_password') || 'change-me';\nconst headers = msg.req && msg.req.headers ? msg.req.headers : {};\nconst headerPassword = headers['x-node-red-password'];\nconst auth = headers.authorization || '';\nconst bearer = auth.toLowerCase().startsWith('bearer ') ? auth.substring(7) : '';\nif (expectedPassword && headerPassword !== expectedPassword && bearer !== expectedPassword) {\n    msg.statusCode = 401;\n    msg.payload = { ok: false, error: 'unauthorized' };\n    return [null, msg];\n}\nreturn [msg, null];",
+    "outputs": 2,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 500,
+    "y": 280,
+    "wires": [
+      [
+        "industrialar_state_store"
+      ],
+      [
+        "industrialar_response"
+      ]
+    ]
+  },
+  {
+    "id": "industrialar_state_store",
+    "type": "function",
+    "z": "industrialar_tab",
+    "name": "Store State",
+    "func": "flow.set('industrialar_state', msg.payload || {});\nmsg.payload = { ok: true, stored: 'state', timestamp: new Date().toISOString() };\nreturn msg;",
+    "outputs": 1,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 690,
+    "y": 280,
+    "wires": [
+      [
+        "industrialar_response"
+      ]
+    ]
+  },
+  {
+    "id": "industrialar_command_debug",
+    "type": "debug",
+    "z": "industrialar_tab",
+    "name": "IndustrialAR commands",
+    "active": true,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "payload",
+    "targetType": "msg",
+    "statusVal": "",
+    "statusType": "auto",
+    "x": 920,
+    "y": 140,
+    "wires": []
+  },
+  {
+    "id": "industrialar_response",
+    "type": "http response",
+    "z": "industrialar_tab",
+    "name": "HTTP Response",
+    "statusCode": "",
+    "headers": {},
+    "x": 930,
+    "y": 240,
+    "wires": []
+  }
+]

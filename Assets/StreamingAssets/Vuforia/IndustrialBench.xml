@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<QCARConfig>
+  <Tracking>
+    <ImageTarget name="ktp700hmi" size="212.000000 115.730469" />
+    <ImageTarget name="PM2200" size="96.000000 128.571426" />
+    <ImageTarget name="S7-1200_PLC" size="110.000000 147.321426" />
+    <ImageTarget name="Signal_tower" size="60.000000 80.357140" />
+    <ImageTarget name="motor" size="150.000000 200.892853" />
+    <ImageTarget name="Stop_Button" size="80.000000 107.142860" />
+  </Tracking>
+</QCARConfig>

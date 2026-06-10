@@ -1,0 +1,41 @@
+# Unity generated folders
+/Library/
+/Temp/
+/Obj/
+/Build/
+/Builds/
+/Logs/
+/UserSettings/
+/MemoryCaptures/
+/Recordings/
+
+# IDE / local machine files
+/.vs/
+/.vscode/
+/.codex/
+*.csproj
+*.sln
+*.slnx
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+
+# OS files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Generated documentation / reports
+/Docs/
+*.docx
+*.pptx
+*.pdf
+
+# Local design/tool scratch not required by Unity runtime
+/design-system/
